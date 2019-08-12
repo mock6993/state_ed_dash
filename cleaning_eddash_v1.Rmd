@@ -1,0 +1,103 @@
+---
+title: "DataCleaning_EdDataDash_v1"
+author: "Mock"
+date: "8/10/2019"
+output: html_document
+---
+
+```{r}
+#load packages
+library(readr)
+library(tidyr)
+library(dplyr)
+library(shiny)
+library(taRifx)
+library(stringr)
+#load education data by district
+#enrollment by race
+race <- read.csv("data/enrollmentSingleYear_bydistrict_race.csv")
+#absent data 
+absent <- read.csv("data/chronicAbsenteeism_bydistrict.csv")
+#enrollment by ELL students
+ell <- read.csv("data/enrollmentSingleYear_ELL_bydistrict.csv")
+#enrollment by free and reduced lunch
+lunch <- read.csv("data/enrollmentSingleYear_lunch_bydistrict.csv")
+#enrollment by SPED
+sped <- read.csv("data/enrollmentSingleYear_sped_bydistrict.csv")
+#graduation rates
+grad <-  read.csv("data/graduation_bydistrict.csv")
+#preformance index
+perf <- read.csv("data/performanceindex_bydistrict.csv")
+#discipline data
+disc <- read.csv("data/sanctions_bydistrict.csv")
+```
+
+## Demographic Data Cleaning 
+
+
+```{r}
+# clean demographic data 
+#join race and free and reduced lunch dataset
+d1 <- inner_join(race, lunch, by = "District")
+#clean ell col names to make columns distinct
+colnames(ell) <- c("District", "District Code", "Non_ELL", "ELL", "Total")
+#join with ell data
+d2 <- inner_join(d1, ell, by="District")
+#clean sped col names to make columns distinct
+colnames(sped) <- c("District", "District Code", "Non_SPED", "SPED", "Total")
+#join with sped data
+d3 <- inner_join(d2, sped, by ="District")
+#join with absence data 
+d4 <- inner_join(d3, absent, by="District")
+#join with discipline data
+d5 <-inner_join(d4, disc, by="District")
+#join with grad rate data
+d6 <- inner_join(d5, grad, by="District")
+#delete unnecessary columns
+d6 <- d6[, -c(11,15, 16, 19, 20, 23, 24, 26, 31)]
+
+```
+
+## Performance Data Cleaning
+
+
+```{r}
+#remove high needs scores
+p1 <- perf[!(perf$Category == "High Needs (F/R, EL or SWD)" ),]
+#remove science scores
+p1 <- p1[,-c(3,5,7, 9,10)]
+#spread out the scores of  ela
+e1 <- p1 %>% 
+  spread("Student.Group", "ELAPerformanceIndex") 
+#rename columns to distinguish scores as ela
+colnames(e1) <- c("District_Name", "District_Code", "MathPerformanceIndex", "ELAgrade_11", "ELAgrade_3", "ELAgrade_4", "ELAgrade_5", "ELAgrade_6", "ELAgrade_7", "ELAgrade_8", "ELANative", "ELAAsian", "ELABlack", "ELADistrict", "ELAFree_Reduced_Lunch", "ELAELL", "ELAFemale", "ELAhispanic","ELAMale", "ELAHawaiian_PI", "ELANon_Bi", "ELANon_Free_Reduced_Lunch", "ELANon_ELL", "ELADisabilities", "ELANon_Disabilities", "ELATwo_Plus_Races", "ELAWhite")
+#spread out the scores of  math
+m1 <- p1 %>%
+  spread("Student.Group", "MathPerformanceIndex")
+#rename columns to distinguish scores as math
+colnames(m1) <- c("District_Name", "District_Code", "ELAPerformanceIndex", "MathGrade_11", "MathGrade_3", "MathGrade_4", "MathGrade_5", "MathGrade_6", "MathGrade_7", "MathGrade_8", "MathNative", "MathAsian", "MathBlack", "MathDistrict", "MathFree_Reduced_Lunch", "MathELL", "MathFemale", "Mathhispanic","MathMale", "MathHawaiian_PI", "MathNon_Bi", "MathNon_Free_Reduced_Lunch", "MathNon_ELL", "MathDisabilities", "MathNon_Disabilities", "MathTwo_Plus_Races", "MathWhite")
+e1 <- e1[,-3]
+m1 <- m1[,-3]
+#condense district info into one row
+p2<-e1 %>% 
+ group_by(District_Name, District_Code) %>% 
+ summarise_all(funs(trimws(paste(., collapse = ''))))
+#remove all the NAs that resulted in the collapse
+numextract <- function(string){ 
+  str_extract(string, "\\-*\\d+\\.*\\d*")} 
+p2[2:26] <- lapply(p2[2:26], numextract)
+#condense district info into one row
+p3<-m1 %>% 
+ group_by(District_Name, District_Code) %>% 
+ summarise_all(funs(trimws(paste(., collapse = ''))))
+#remove all the NAs that resulted in the collapse
+p3[2:26] <- lapply(p3[2:26], numextract)
+#join two data sets
+p4 <- left_join(p2, p3, by="District_Name")
+```
+
+```{r}
+#final edits to clean data 
+
+
+```

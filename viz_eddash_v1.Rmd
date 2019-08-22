@@ -11,6 +11,7 @@ library(readr)
 library(tidyr)
 library(dplyr)
 library(shiny)
+library(rsconnect)
 
 pf1 <- read_csv("data/performance_clean_v1.csv")
 ```
@@ -19,6 +20,15 @@ pf1 <- read_csv("data/performance_clean_v1.csv")
 
 
 ```{r}
+ui <- fluidPage(
+  headerPanel('Connecticut District Level Education Data'),
+  sidebarPanel(selectInput("Distric", label='District', choices=pf1$District_Name,  multiple= FALSE))
+)
+  
+server <- function(input, output) {}
+
+shinyApp(ui = ui, server = server)
+
 ```
 
 ## Including Plots
